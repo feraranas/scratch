@@ -261,6 +261,18 @@ export function GeneralSettingsSection() {
           </div>
           <FoldersToggle />
         </div>
+        <div className="flex items-center justify-between gap-6 mt-4">
+          <div className="flex flex-col gap-0.75">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-medium">Sort folders by last modified</h2>
+            </div>
+            <p className="text-sm text-text-muted max-w-lg">
+              Folders with recently-edited notes float to the top. When off,
+              folders are sorted alphabetically.
+            </p>
+          </div>
+          <SortFoldersByModifiedToggle />
+        </div>
       </section>
 
       {/* Divider */}
@@ -679,6 +691,68 @@ function FoldersToggle() {
       <Button
         onClick={() => handleToggle(true)}
         variant={foldersEnabled ? "primary" : "ghost"}
+        size="xs"
+        disabled={isUpdating}
+      >
+        On
+      </Button>
+    </div>
+  );
+}
+
+function SortFoldersByModifiedToggle() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    invoke<Settings>("get_settings")
+      .then((s) => setEnabled(s.sortFoldersByModified === true))
+      .catch(() => setEnabled(false));
+  }, []);
+
+  const handleToggle = async (next: boolean) => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      const settings = await invoke<Settings>("get_settings");
+      await invoke("update_settings", {
+        newSettings: { ...settings, sortFoldersByModified: next },
+      });
+      setEnabled(next);
+      window.dispatchEvent(new CustomEvent("settings-updated"));
+    } catch {
+      toast.error("Failed to update folder sort setting");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (enabled === null) {
+    return (
+      <div className="flex gap-1 p-1 rounded-[10px] border border-border shrink-0">
+        <Button variant="ghost" size="xs" disabled>
+          Off
+        </Button>
+        <Button variant="ghost" size="xs" disabled>
+          On
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-1 p-1 rounded-[10px] border border-border shrink-0">
+      <Button
+        onClick={() => handleToggle(false)}
+        variant={!enabled ? "primary" : "ghost"}
+        size="xs"
+        disabled={isUpdating}
+      >
+        Off
+      </Button>
+      <Button
+        onClick={() => handleToggle(true)}
+        variant={enabled ? "primary" : "ghost"}
         size="xs"
         disabled={isUpdating}
       >

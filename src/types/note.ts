@@ -59,11 +59,13 @@ export interface Settings {
   ignoredPatterns?: string[];
   customColorsLight?: CustomColors;
   customColorsDark?: CustomColors;
+  sortFoldersByModified?: boolean;
 }
 
 export interface FolderNode {
   name: string;
   path: string;
+  modified: number;
   children: FolderNode[];
   notes: NoteMetadata[];
 }

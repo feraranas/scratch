@@ -257,14 +257,19 @@ export function NoteList({
   const [settings, setSettings] = useState<Settings | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load settings when notes change
+  // Load settings when notes change or when another view updates them
   useEffect(() => {
-    notesService
-      .getSettings()
-      .then(setSettings)
-      .catch((error) => {
-        console.error("Failed to load settings:", error);
-      });
+    const load = () => {
+      notesService
+        .getSettings()
+        .then(setSettings)
+        .catch((error) => {
+          console.error("Failed to load settings:", error);
+        });
+    };
+    load();
+    window.addEventListener("settings-updated", load);
+    return () => window.removeEventListener("settings-updated", load);
   }, [notes]);
 
   // Calculate pinned IDs set for efficient lookup

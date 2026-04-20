@@ -9,6 +9,7 @@ export function buildFolderTree(
   notes: NoteMetadata[],
   pinnedIds: Set<string>,
   knownFolders?: string[],
+  sortByModified: boolean = false,
 ): FolderTreeData {
   const rootNotes: NoteMetadata[] = [];
   const folderMap = new Map<string, FolderNode>();
@@ -19,7 +20,7 @@ export function buildFolderTree(
 
     const parts = path.split("/");
     const name = parts[parts.length - 1];
-    const node: FolderNode = { name, path, children: [], notes: [] };
+    const node: FolderNode = { name, path, modified: 0, children: [], notes: [] };
     folderMap.set(path, node);
 
     if (parts.length > 1) {
@@ -48,11 +49,25 @@ export function buildFolderTree(
       const folderPath = note.id.substring(0, lastSlash);
       const folder = ensureFolder(folderPath);
       folder.notes.push(note);
+      // Roll up max modified through the whole ancestor chain
+      let ancestorPath: string | null = folderPath;
+      while (ancestorPath) {
+        const ancestor = folderMap.get(ancestorPath);
+        if (ancestor && note.modified > ancestor.modified) {
+          ancestor.modified = note.modified;
+        }
+        const slash = ancestorPath.lastIndexOf("/");
+        ancestorPath = slash > 0 ? ancestorPath.substring(0, slash) : null;
+      }
     }
   }
 
+  const folderCompare = sortByModified
+    ? (a: FolderNode, b: FolderNode) => b.modified - a.modified
+    : (a: FolderNode, b: FolderNode) => a.name.localeCompare(b.name);
+
   function sortNode(node: FolderNode) {
-    node.children.sort((a, b) => a.name.localeCompare(b.name));
+    node.children.sort(folderCompare);
     node.notes.sort((a, b) => {
       const ap = pinnedIds.has(a.id);
       const bp = pinnedIds.has(b.id);
@@ -65,7 +80,7 @@ export function buildFolderTree(
   const topLevelFolders = Array.from(folderMap.values()).filter(
     (f) => !f.path.includes("/"),
   );
-  topLevelFolders.sort((a, b) => a.name.localeCompare(b.name));
+  topLevelFolders.sort(folderCompare);
   topLevelFolders.forEach(sortNode);
 
   // Sort root notes: pinned first, then by modified desc
