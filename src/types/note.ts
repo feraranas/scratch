@@ -53,17 +53,20 @@ export interface Settings {
   textDirection?: TextDirection;
   editorWidth?: EditorWidth;
   customEditorWidthPx?: number;
+  sidebarWidthPx?: number;
   defaultNoteName?: string;
   interfaceZoom?: number;
   ollamaModel?: string;
   ignoredPatterns?: string[];
   customColorsLight?: CustomColors;
   customColorsDark?: CustomColors;
+  sortFoldersByModified?: boolean;
 }
 
 export interface FolderNode {
   name: string;
   path: string;
+  modified: number;
   children: FolderNode[];
   notes: NoteMetadata[];
 }

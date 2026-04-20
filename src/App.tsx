@@ -27,6 +27,7 @@ import {
   type Update,
 } from "@tauri-apps/plugin-updater";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import * as notesService from "./services/notes";
 import * as aiService from "./services/ai";
 import type { AiProvider } from "./services/ai";
 
@@ -69,6 +70,74 @@ function AppContent() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [view, setView] = useState<ViewState>("notes");
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const SIDEBAR_MIN = 180;
+  const SIDEBAR_MAX = 500;
+  const SIDEBAR_DEFAULT = 256;
+  const [sidebarWidth, setSidebarWidth] = useState<number>(SIDEBAR_DEFAULT);
+  const [resizingSidebar, setResizingSidebar] = useState(false);
+  const sidebarSaveRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    notesService
+      .getSettings()
+      .then((s) => {
+        if (typeof s.sidebarWidthPx === "number") {
+          setSidebarWidth(
+            Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, s.sidebarWidthPx)),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const persistSidebarWidth = useCallback((width: number) => {
+    if (sidebarSaveRef.current) clearTimeout(sidebarSaveRef.current);
+    sidebarSaveRef.current = window.setTimeout(() => {
+      notesService
+        .getSettings()
+        .then((s) =>
+          notesService.updateSettings({ ...s, sidebarWidthPx: width }),
+        )
+        .catch((e) => console.error("Failed to save sidebar width:", e));
+    }, 300);
+  }, []);
+
+  const handleSidebarResizeStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      setResizingSidebar(true);
+      const prevCursor = document.body.style.cursor;
+      const prevSelect = document.body.style.userSelect;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+
+      let latest = sidebarWidth;
+      const onMove = (ev: PointerEvent) => {
+        const next = Math.min(
+          SIDEBAR_MAX,
+          Math.max(SIDEBAR_MIN, Math.round(ev.clientX)),
+        );
+        latest = next;
+        setSidebarWidth(next);
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        document.body.style.cursor = prevCursor;
+        document.body.style.userSelect = prevSelect;
+        setResizingSidebar(false);
+        persistSidebarWidth(latest);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [sidebarWidth, persistSidebarWidth],
+  );
+
+  const handleSidebarResizeReset = useCallback(() => {
+    setSidebarWidth(SIDEBAR_DEFAULT);
+    persistSidebarWidth(SIDEBAR_DEFAULT);
+  }, [persistSidebarWidth]);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [aiEditing, setAiEditing] = useState(false);
@@ -472,9 +541,20 @@ function AppContent() {
           <>
             <div
               data-sidebar
-              className={`transition-all duration-500 ease-out overflow-hidden ${!sidebarVisible || focusMode ? "opacity-0 -translate-x-4 w-0 pointer-events-none" : "opacity-100 translate-x-0 w-64"}`}
+              className={`relative ease-out overflow-hidden ${resizingSidebar ? "" : "transition-all duration-500"} ${!sidebarVisible || focusMode ? "opacity-0 -translate-x-4 pointer-events-none" : "opacity-100 translate-x-0"}`}
+              style={{
+                width: !sidebarVisible || focusMode ? 0 : sidebarWidth,
+              }}
             >
               <Sidebar onOpenSettings={toggleSettings} />
+              {sidebarVisible && !focusMode && (
+                <div
+                  onPointerDown={handleSidebarResizeStart}
+                  onDoubleClick={handleSidebarResizeReset}
+                  title="Drag to resize · double-click to reset"
+                  className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-accent/40 active:bg-accent/60 z-20"
+                />
+              )}
             </div>
             <Editor
               onToggleSidebar={toggleSidebar}

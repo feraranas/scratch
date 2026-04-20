@@ -310,7 +310,7 @@ export function Sidebar({ onOpenSettings }: SidebarProps) {
       onDragEnd={handleDragEnd}
       onDragCancel={() => setDragLabel(null)}
     >
-    <div className="relative w-64 h-full bg-bg-secondary border-r border-border flex flex-col select-none">
+    <div className="relative w-full h-full bg-bg-secondary border-r border-border flex flex-col select-none">
       {/* Drag region */}
       <div className="h-11 shrink-0" data-tauri-drag-region></div>
       <div className="flex items-center justify-between pl-4 pr-3 pb-2 border-b border-border shrink-0">
@@ -384,7 +384,7 @@ export function Sidebar({ onOpenSettings }: SidebarProps) {
         </div>
       </div>
       {/* Scrollable area with search and notes */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-none">
         {/* Search - sticky at top */}
         {searchOpen && (
           <div className="sticky top-0 z-10 px-2 pt-2 bg-bg-secondary">
