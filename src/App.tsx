@@ -552,7 +552,7 @@ function AppContent() {
                   onPointerDown={handleSidebarResizeStart}
                   onDoubleClick={handleSidebarResizeReset}
                   title="Drag to resize · double-click to reset"
-                  className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-accent/40 active:bg-accent/60 z-20"
+                  className="absolute top-0 right-0 h-full w-1 cursor-col-resize z-20"
                 />
               )}
             </div>
